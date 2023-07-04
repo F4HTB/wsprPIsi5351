@@ -1,7 +1,12 @@
 #ifndef WSPR_H
 #define WSPR_H
 
-#define FREQ2m            14449500000   //2m    144490000Hz
+#define WSPR_RAND_OFFSET  50			// How much random frequency offset should be added to WSPR transmissions
+
+#define FREQ2m            14412150000   //2m    144120000Hz
+// #define FREQ2m             7206075000   //2m    144120000Hz overtone 2
+// #define FREQ2m             3603037500      //2m    144120000Hz overtone 4
+// #define FREQ2m             1801518750   //2m    144120000Hz overtone 8
 #define FREQ4m             7009250000   //4m     70092500Hz
 #define FREQ6m             5029450000   //6m     50294500Hz
 #define FREQ10m            2812610000   //10m    28126100Hz

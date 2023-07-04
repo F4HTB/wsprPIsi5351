@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <pigpio.h>
 #include <inttypes.h>
 #include "si5351a.h"
+#include "I2CWrapper.c"
 
 #define I2C_WRITE 0x60
 #define I2C_READ  0x61
@@ -26,14 +26,14 @@ void setupPLL(int i2c, uint8_t pll, uint8_t mult, uint32_t num, uint32_t denom)
     P2 = (uint32_t)(128 * num - denom * P2);
     P3 = denom;
 
-    i2cWriteByteData(i2c, pll + 0, (P3 & 0x0000FF00) >> 8);
-    i2cWriteByteData(i2c, pll + 1, (P3 & 0x000000FF));
-    i2cWriteByteData(i2c, pll + 2, (P1 & 0x00030000) >> 16);
-    i2cWriteByteData(i2c, pll + 3, (P1 & 0x0000FF00) >> 8);
-    i2cWriteByteData(i2c, pll + 4, (P1 & 0x000000FF));
-    i2cWriteByteData(i2c, pll + 5, ((P3 & 0x000F0000) >> 12) | ((P2 & 0x000F0000) >> 16));
-    i2cWriteByteData(i2c, pll + 6, (P2 & 0x0000FF00) >> 8);
-    i2cWriteByteData(i2c, pll + 7, (P2 & 0x000000FF));
+    I2CWrapperWriteByte(i2c, pll + 0, (P3 & 0x0000FF00) >> 8);
+    I2CWrapperWriteByte(i2c, pll + 1, (P3 & 0x000000FF));
+    I2CWrapperWriteByte(i2c, pll + 2, (P1 & 0x00030000) >> 16);
+    I2CWrapperWriteByte(i2c, pll + 3, (P1 & 0x0000FF00) >> 8);
+    I2CWrapperWriteByte(i2c, pll + 4, (P1 & 0x000000FF));
+    I2CWrapperWriteByte(i2c, pll + 5, ((P3 & 0x000F0000) >> 12) | ((P2 & 0x000F0000) >> 16));
+    I2CWrapperWriteByte(i2c, pll + 6, (P2 & 0x0000FF00) >> 8);
+    I2CWrapperWriteByte(i2c, pll + 7, (P2 & 0x000000FF));
 }
 
 //
@@ -51,14 +51,14 @@ void setupMultisynth(int i2c, uint8_t synth, uint32_t divider, uint8_t rDiv)
     P2 = 0;							// P2 = 0, P3 = 1 forces an integer value for the divider
     P3 = 1;
 
-    i2cWriteByteData(i2c, synth + 0,   (P3 & 0x0000FF00) >> 8);
-    i2cWriteByteData(i2c, synth + 1,   (P3 & 0x000000FF));
-    i2cWriteByteData(i2c, synth + 2,   ((P1 & 0x00030000) >> 16) | rDiv);
-    i2cWriteByteData(i2c, synth + 3,   (P1 & 0x0000FF00) >> 8);
-    i2cWriteByteData(i2c, synth + 4,   (P1 & 0x000000FF));
-    i2cWriteByteData(i2c, synth + 5,   ((P3 & 0x000F0000) >> 12) | ((P2 & 0x000F0000) >> 16));
-    i2cWriteByteData(i2c, synth + 6,   (P2 & 0x0000FF00) >> 8);
-    i2cWriteByteData(i2c, synth + 7,   (P2 & 0x000000FF));
+    I2CWrapperWriteByte(i2c, synth + 0,   (P3 & 0x0000FF00) >> 8);
+    I2CWrapperWriteByte(i2c, synth + 1,   (P3 & 0x000000FF));
+    I2CWrapperWriteByte(i2c, synth + 2,   ((P1 & 0x00030000) >> 16) | rDiv);
+    I2CWrapperWriteByte(i2c, synth + 3,   (P1 & 0x0000FF00) >> 8);
+    I2CWrapperWriteByte(i2c, synth + 4,   (P1 & 0x000000FF));
+    I2CWrapperWriteByte(i2c, synth + 5,   ((P3 & 0x000F0000) >> 12) | ((P2 & 0x000F0000) >> 16));
+    I2CWrapperWriteByte(i2c, synth + 6,   (P2 & 0x0000FF00) >> 8);
+    I2CWrapperWriteByte(i2c, synth + 7,   (P2 & 0x000000FF));
 }
 
 //
@@ -68,21 +68,82 @@ void setupMultisynth(int i2c, uint8_t synth, uint32_t divider, uint8_t rDiv)
 //
 void si5351aOutputOff(uint8_t clk)
 {
-    int i2c = i2cOpen(I2C_BUS, I2C_WRITE, 0);
 
-    i2cWriteByteData(i2c, 0x80, clk);
+	int i2c = I2CWrapperOpen(I2C_BUS,I2C_WRITE);
+	I2CWrapperWriteByte(i2c, clk,0x80 );
+	I2CWrapperClose(i2c);
 
-    i2cClose(i2c);
 }
 
-// 
-// Set CLK0 output ON and to the specified frequency
-// Frequency is in the range 1MHz to 150MHz
-// Example: si5351aSetFrequency(1000000000);
-// will set output CLK0 to 10MHz
-//
-// This example sets up PLL A and MultiSynth 0 and produces the output on CLK0
-//
+void si5351aOutputOffAll()
+{
+
+	int i2c = I2CWrapperOpen(I2C_BUS,I2C_WRITE);
+    si5351aOutputOff(SI_CLK0_CONTROL);
+	si5351aOutputOff(SI_CLK1_CONTROL);
+	si5351aOutputOff(SI_CLK2_CONTROL);
+	I2CWrapperClose(i2c);
+
+}
+
+
+
+void si5351aOutputOn(uint8_t clk)
+{
+	int i2c = I2CWrapperOpen(I2C_BUS,I2C_WRITE);
+	I2CWrapperWriteByte(i2c, clk, si5351alastpower );
+	I2CWrapperClose(i2c);
+	
+}
+
+void si5351ainit() //Frequency is in centiHz
+{
+	int i2c = I2CWrapperOpen(I2C_BUS,I2C_WRITE);
+	
+	// Initialize the CLK outputs according to flowchart in datasheet
+	// First, turn them off
+	I2CWrapperWriteByte(i2c, SI_CLK0_CONTROL, 0x80);
+	I2CWrapperWriteByte(i2c, SI_CLK1_CONTROL, 0x80);
+	I2CWrapperWriteByte(i2c, SI_CLK2_CONTROL, 0x80);
+
+	// Turn the clocks back on...
+	I2CWrapperWriteByte(i2c, SI_CLK0_CONTROL, 0x0c);
+	I2CWrapperWriteByte(i2c, SI_CLK1_CONTROL, 0x0c);
+	I2CWrapperWriteByte(i2c, SI_CLK2_CONTROL, 0x0c);
+
+
+
+	uint8_t reg_val = 0;
+	reg_val = I2CWrapperReadByte(i2c,SI_CLK0_CONTROL);
+	reg_val &= ~(SI5351_CLK_PLL_SELECT);
+	I2CWrapperWriteByte(i2c, SI_CLK0_CONTROL, reg_val);
+	reg_val = I2CWrapperReadByte(i2c,SI_CLK1_CONTROL);
+	reg_val &= ~(SI5351_CLK_PLL_SELECT);
+	I2CWrapperWriteByte(i2c, SI_CLK1_CONTROL, reg_val);
+	reg_val = I2CWrapperReadByte(i2c,SI_CLK2_CONTROL);
+	reg_val &= ~(SI5351_CLK_PLL_SELECT);
+	I2CWrapperWriteByte(i2c, SI_CLK2_CONTROL, reg_val);
+	
+	// Reset the VCXO param
+	I2CWrapperWriteByte(i2c, SI5351_VXCO_PARAMETERS_LOW, 0);
+	I2CWrapperWriteByte(i2c, SI5351_VXCO_PARAMETERS_MID, 0);
+	I2CWrapperWriteByte(i2c, SI5351_VXCO_PARAMETERS_HIGH, 0);
+
+	// Then reset the PLLs
+	I2CWrapperWriteByte(i2c, SI_PLL_RESET, 0xA0);	
+	
+	// Set crystal load capacitance
+	I2CWrapperWriteByte(i2c, SI_CRYSTAL_LOAD,(SI_CRYSTAL_LOAD_8PF & SI_CRYSTAL_LOAD_MASK) | 0b00010010 );
+	
+	// shut off the spread spectrum by default, DWaite contibuted code  
+    uint8_t regval;
+    regval = I2CWrapperReadByte(i2c,SI_SSC_PARAM0);
+    regval &= ~0x80;  // set bit 7 LOW to turn OFF spread spectrum mode
+	I2CWrapperWriteByte(i2c, SI_SSC_PARAM0,regval );
+    si5351aOutputOffAll();  // power off all the outputs
+	I2CWrapperClose(i2c);
+}
+
 void si5351aSetFrequency(uint64_t frequency) //Frequency is in centiHz
 {
     uint64_t pllFreq;
@@ -93,22 +154,35 @@ void si5351aSetFrequency(uint64_t frequency) //Frequency is in centiHz
     uint32_t num;
     uint32_t denom;
     uint32_t divider;
+	uint8_t rDiv;
 
-    int i2c = i2cOpen(I2C_BUS, I2C_WRITE, 0);
+	int i2c = I2CWrapperOpen(I2C_BUS,I2C_WRITE);
 
-    divider = 90000000000 / frequency;// Calculate the division ratio. 900,000,000 is the maximum internal 
-    // PLL frequency: 900MHz
-    if (divider % 2) divider--;		// Ensure an even integer division ratio
+	if (frequency > 100000000ULL) {
+		rDiv = SI_R_DIV_1;
+		divider = 90000000000 / frequency;// Calculate the division ratio. 900,000,000 is the maximum internal 
+		// PLL frequency: 900MHz
+		if (divider % 2) divider--;		// Ensure an even integer division ratio
 
-    pllFreq = divider * frequency;	// Calculate the pllFrequency: the divider * desired output frequency
+		pllFreq = divider * frequency;	// Calculate the pllFrequency: the divider * desired output frequency
 
-    mult = pllFreq / (xtalFreq * 100);		// Determine the multiplier to get to the required pllFrequency
-    l = pllFreq % (xtalFreq * 100);			// It has three parts:
-    f = l;							// mult is an integer that must be in the range 15..90
-    f *= 1048575;					// num and denom are the fractional parts, the numerator and denominator
-    f /= xtalFreq;					// each is 20 bits (range 0..1048575)
-    num = f;						// the actual multiplier is  mult + num / denom
-    denom = 1048575;				// For simplicity we set the denominator to the maximum 1048575
+	}else{
+		rDiv = SI_R_DIV_128;
+		divider = 90000000000 / (frequency * 128);// Calculate the division ratio. 900,000,000 is the maximum internal 
+		// PLL frequency: 900MHz
+		if (divider % 2) divider--;		// Ensure an even integer division ratio
+
+		pllFreq = divider * frequency * 128;	// Calculate the pllFrequency: the divider * desired output frequency
+	}
+		mult = pllFreq / (xtalFreq * 100);		// Determine the multiplier to get to the required pllFrequency
+		l = pllFreq % (xtalFreq * 100);			// It has three parts:
+		f = l;							// mult is an integer that must be in the range 15..90
+		f *= 1048575;					// num and denom are the fractional parts, the numerator and denominator
+		f /= xtalFreq;					// each is 20 bits (range 0..1048575)
+		num = f;						// the actual multiplier is  mult + num / denom
+		denom = 1048575;				// For simplicity we set the denominator to the maximum 1048575
+		num = num / 100;		
+	
 
     // Set up PLL A with the calculated multiplication ratio
     setupPLL(i2c, SI_SYNTH_PLL_A, mult, num, denom);
@@ -117,15 +191,35 @@ void si5351aSetFrequency(uint64_t frequency) //Frequency is in centiHz
     // reprented by constants SI_R_DIV1 to SI_R_DIV128 (see si5351a.h header file)
     // If you want to output frequencies below 1MHz, you have to use the 
     // final R division stage
-    setupMultisynth(i2c, SI_SYNTH_MS_0, divider, SI_R_DIV_1);
+    setupMultisynth(i2c, SI_SYNTH_MS_0, divider, rDiv);
     // Reset the PLL. This causes a glitch in the output. For small changes to 
     // the parameters, you don't need to reset the PLL, and there is no glitch
-    i2cWriteByteData(i2c, SI_PLL_RESET, 0xA0);	
-    // Finally switch on the CLK0 output (0x4F)
+    
+	// I2CWrapperWriteByte(i2c, SI_PLL_RESET, 0xA0);	
+    
+	// Finally switch on the CLK0 output (0x4F)
     // and set the MultiSynth0 input to be PLL A
-    i2cWriteByteData(i2c, SI_CLK0_CONTROL, 0x4F | SI_CLK_SRC_PLL_A);
-
-    i2cClose(i2c);
+    //I2CWrapperWriteByte(i2c, SI_CLK0_CONTROL, 0x4F | SI_CLK_SRC_PLL_A);
+	si5351aOutputOn(SI_CLK0_CONTROL);
+	
+    I2CWrapperClose(i2c);
 }
 
-
+void SetPower (uint8_t power, uint8_t clk){
+	if (power == 0 || power > 4){power = 0;}
+		switch (power){
+		case 1:
+		si5351alastpower = 76;// CLK0  Contrôle du courant de sortie -> 2mA
+		break;
+		case 2:
+		si5351alastpower = 77;// CLK0  Contrôle du courant de sortie -> 4mA
+		break;
+		case 3:
+		si5351alastpower = 78;// CLK0  Contrôle du courant de sortie -> 6mA
+		break;
+		case 4:
+		si5351alastpower = 79;// CLK0  Contrôle du courant de sortie -> 8mA
+		break;
+	}
+	si5351aOutputOn(SI_CLK0_CONTROL);
+}
